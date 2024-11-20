@@ -1,0 +1,136 @@
+USE cricket_analysis;
+#1.Which players have played in the most matches?
+SELECT p.Player_Name, COUNT(pm.Match_Id) AS match_count
+FROM Player p
+JOIN Player_Match pm ON p.Player_Id = pm.Player_Id
+GROUP BY p.Player_Name
+ORDER BY match_count DESC
+LIMIT 10;
+
+#2.Total Runs by Each Player
+SELECT p.Player_Name, 
+SUM(b.Batsman_Scorecard) AS total_runs
+FROM Ball_by_Ball b
+JOIN Player p ON b.Striker_Id = p.Player_Id
+GROUP BY p.Player_Name
+ORDER BY total_runs DESC;
+
+#3.Player with the Most Boundaries
+SELECT p.Player_Name, 
+COUNT(*) AS boundary_count
+FROM Ball_by_Ball b
+JOIN Player p ON b.Striker_Id = p.Player_Id
+WHERE b.Batsman_Scored IN (4, 6)
+GROUP BY p.Player_Name
+ORDER BY boundary_count DESC;
+
+#4.Top 5 Players by Runs Scored
+SELECT p.Player_Name, 
+SUM(b.Batsman_Scored) AS total_runs
+FROM Ball_by_Ball b
+JOIN Player p ON b.Striker_Id = p.Player_Id
+GROUP BY p.Player_Name
+ORDER BY total_runs DESC
+LIMIT 5;
+
+#5.Matches Won by Each Team
+SELECT t.Team_Name, 
+COUNT(*) AS matches_won
+FROM `Match` m
+JOIN Team t ON m.Match_Winner_Id = t.Team_Id
+GROUP BY t.Team_Name
+ORDER BY matches_won DESC;
+
+#6.Total Matches Played by Each Team
+SELECT t.Team_Name, 
+COUNT(*) AS matches_played
+FROM `Match` m
+JOIN Team t ON m.Team_Id = t.Team_Id
+GROUP BY t.Team_Name;
+
+#7.Create a new table showing total runs and matches played for each player.
+Create table player_stats as
+SELECT p.Player_Id, p.Player_Name, 
+       COUNT(DISTINCT pm.Match_Id) AS matches_played,
+       SUM(b.Batsman_Scored) AS total_runs
+FROM Player p
+LEFT JOIN Player_Match pm ON p.Player_Id = pm.Player_Id
+LEFT JOIN Ball_by_Ball b ON p.Player_Id = b.Striker_Id
+GROUP BY p.Player_Id, p.Player_Name;
+
+#8.Find partnerships with the most runs in an innings.
+SELECT Striker_Id, Non_Striker_Id, Match_Id, SUM(Batsman_Scored) AS partnership_runs
+FROM Ball_by_Ball
+GROUP BY Striker_Id, Non_Striker_Id, Match_Id
+ORDER BY partnership_runs DESC
+LIMIT 10;
+
+#9.Total Runs by Each Team
+SELECT t.Team_Name, 
+SUM(b.Batsman_Scored) AS total_runs
+FROM Ball_by_Ball b
+JOIN Player_Match pm ON b.Striker_Id = pm.Player_Id
+JOIN Team t ON pm.Team_Id = t.Team_Id
+GROUP BY t.Team_Name
+ORDER BY total_runs DESC;
+
+#10.Which batsman scored the most runs in a single match?
+SELECT p.Player_Name AS Batsman, 
+b.Match_Id, 
+SUM(b.Batsman_scored) AS Runs
+FROM Ball_by_Ball b
+JOIN Player p ON b.Striker_Id = p.Player_Id
+GROUP BY p.Player_Name, b.Match_Id
+ORDER BY Runs DESC
+LIMIT 5;
+
+#11.Which players had the highest strike rate in a single match?
+SELECT p.Player_Name AS Batsman, b.Match_Id, 
+SUM(b.Batsman_scored) AS Runs, 
+COUNT(*) AS Balls_Faced, 
+(SUM(b.Batsman_scored) / COUNT(*)) * 100 AS Strike_Rate
+FROM Ball_by_Ball b
+JOIN Player p ON b.Striker_Id = p.Player_Id
+GROUP BY p.Player_Name, b.Match_Id
+HAVING Balls_Faced >= 10
+ORDER BY Strike_Rate DESC
+LIMIT 5;
+
+#12.wickets taken by the bowlers?
+SELECT p.Player_Name AS Bowler, 
+COUNT(*) AS Wickets
+FROM Ball_by_Ball b
+JOIN Player p ON b.Bowler_Id = p.Player_Id
+WHERE b.Dissimal_Type IS NOT NULL AND b.Dissimal_Type NOT IN ('run out', 
+'obstructing the field')
+GROUP BY p.Player_Name
+ORDER BY Wickets DESC;
+
+#13.highest sixers in team?
+SELECT t.Team_Name, 
+COUNT(*) AS Total_Sixes
+FROM Ball_by_Ball b
+JOIN Player_Match pm ON b.Striker_Id = pm.Player_Id
+JOIN Team t ON pm.Team_Id = t.Team_Id
+WHERE b.Batsman_scored = 6
+GROUP BY t.Team_Name
+ORDER BY Total_Sixes DESC;
+
+#14.Players with Ducks (Zero Runs)
+SELECT p.Player_Name,         
+COUNT(*) AS Duck_Count
+FROM player p               
+JOIN ball_by_ball b         
+ON p.Player_ID = b.Team_Batting_Id
+WHERE b.Batsman_Scored = 0   
+GROUP BY p.Player_Name          
+ORDER BY Duck_Count DESC; 
+
+#15.Determine the rank of each player based on their total runs scored relative to others. This provides a clear comparison of individual batting performances across the league .
+SELECT 
+    p.Player_Name,
+    SUM(b.Batsman_Scored) AS total_runs,
+    PERCENT_RANK() OVER (ORDER BY SUM(b.Batsman_Scored) DESC) as position
+FROM Ball_by_Ball b
+JOIN Player p ON b.Striker_Id = p.Player_Id
+GROUP BY p.Player_Id, p.Player_Name;
