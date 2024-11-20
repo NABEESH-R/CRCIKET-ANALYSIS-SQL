@@ -1,0 +1,1 @@
+Cricket, one of the most popular sports globally, generates vast amounts of data, including ball-by-ball match details, player performances, and team statistics. This project focuses on analyzing cricket match data using MySQL to extract valuable insights and answer complex queries.
